@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8" />
+    <title>特徵選取系統</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h2, h3 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        h2 {
+            margin-bottom: 20px;
+            font-size: 2em;
+        }
+        h3 {
+            font-size: 1.5em;
+            margin-top: 15px;
+            margin-bottom: 10px;
+        }
+        form {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+        input[type="file"] {
+            margin-right: 10px;
+        }
+        ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        li {
+            background: #ecf0f1;
+            margin: 5px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        @media (max-width: 600px) {
+            table, thead, tbody, th, td, tr {
+                display: block;
+            }
+            th {
+                text-align: center;
+            }
+            td {
+                text-align: right;
+                position: relative;
+                padding-left: 50%;
+            }
+            td:before {
+                content: attr(data-label);
+                position: absolute;
+                left: 10px;
+                font-weight: bold;
+            }
+        }
+    </style>
+    <script>
+        // 用於啟用/禁用匯出按鈕
+        function updateExportButton() {
+            const checkboxes = document.querySelectorAll('input[name="selected_features"]:checked');
+            const exportBtn = document.getElementById('exportBtn');
+            exportBtn.disabled = checkboxes.length === 0;
+        }
+
+        // 頁面載入後綁定監聽
+        window.onload = function() {
+            const checkboxes = document.querySelectorAll('input[name="selected_features"]');
+            checkboxes.forEach(chk => {
+                chk.addEventListener('change', updateExportButton);
+            });
+            updateExportButton(); // 初始化狀態
+        };
+    </script>
+</head>
+<body>
+    <h2>📊 特徵欄位選取</h2>
+
+    <!-- CSV 上傳 -->
+    <form method="post" enctype="multipart/form-data">
+        <label>📁 上傳 CSV 檔：</label>
+        <input type="file" name="csv_file" accept=".csv" required>
+        <button type="submit" name="action" value="upload">上傳 CSV</button>
+    </form>
+
+    <br />
+
+    <!-- 已選取的特徵與匯出按鈕 -->
+    {% if selected %}
+        <h3>✅ 你已選取的特徵：</h3>
+        <ul>
+        {% for name in selected %}
+            <li>{{ name }}</li>
+        {% endfor %}
+        </ul>
+        <!-- 匯出表單 -->
+        <form method="post" id="exportForm" onsubmit="return confirmExport()">
+            <!-- 將勾選欄位用隱藏欄位帶入 -->
+            {% for name in selected %}
+                <input type="hidden" name="selected_features" value="{{ name }}">
+            {% endfor %}
+            <button type="submit" name="action" value="export" id="exportBtn">📤 匯出選取欄位 CSV</button>
+        </form>
+        <br />
+    {% endif %}
+
+    <!-- 欄位勾選表單 -->
+    <form method="post" id="selectForm">
+        {% for layer, features in features_by_layer.items() %}
+            <h3>📁 層級：{{ layer }}</h3>
+            <table border="1" cellpadding="5" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th>✔️ 勾選</th>
+                        <th>英文欄位</th>
+                        <th>中文名稱</th>
+                        <th>類別</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for feature in features %}
+                    <tr>
+                        <td>
+                            <input type="checkbox" name="selected_features" value="{{ feature.name }}"
+                                   {% if feature.name in selected %}checked{% endif %}>
+                        </td>
+                        <td>{{ feature.name }}</td>
+                        <td>{{ feature.chinese }}</td>
+                        <td>{{ feature.type }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            <br />
+        {% endfor %}
+
+        <button type="submit" name="action" value="select">送出選取</button>
+    </form>
+
+<script>
+    function confirmExport() {
+        const exportBtn = document.getElementById('exportBtn');
+        if (exportBtn.disabled) {
+            alert('請先勾選至少一個欄位才能匯出！');
+            return false;
+        }
+        return confirm('確定要匯出選取的欄位嗎？');
+    }
+</script>
+
+</body>
+</html>
